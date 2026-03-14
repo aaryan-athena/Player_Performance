@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import { firestoreService } from '../../services/firestoreService.js';
+import { sportParameterLabels } from '../../models/sportParameters.js';
 import { Card, Button, Badge, LoadingSpinner, Alert } from '../ui/index.js';
 
 /**
@@ -18,6 +19,9 @@ function CoachDashboard({ onNavigateToTab }) {
     totalMatches: 0,
     topPerformer: null
   });
+  const [expandedPlayers, setExpandedPlayers] = useState(new Set());
+  const [playerMatches, setPlayerMatches] = useState({});
+  const [matchesLoading, setMatchesLoading] = useState({});
 
   // Load players and team statistics
   useEffect(() => {
@@ -104,6 +108,64 @@ function CoachDashboard({ onNavigateToTab }) {
     if (score >= 80) return 'Excellent';
     if (score >= 60) return 'Good';
     return 'Needs Improvement';
+  };
+
+  /**
+   * Load recent matches for a specific player
+   */
+  const loadPlayerMatches = async (player) => {
+    const key = player.id;
+    if (playerMatches[key] || matchesLoading[key]) return;
+    setMatchesLoading(prev => ({ ...prev, [key]: true }));
+    try {
+      // Query by playerId directly
+      const byId = await firestoreService.query('matches', [
+        { field: 'playerId', operator: '==', value: player.id }
+      ]);
+
+      // Also query by playerEmail if available, to catch matches stored with email field
+      let byEmail = [];
+      if (player.email) {
+        byEmail = await firestoreService.query('matches', [
+          { field: 'playerEmail', operator: '==', value: player.email }
+        ]);
+      }
+
+      // Merge and deduplicate by match id
+      const seen = new Set(byId.map(m => m.id));
+      const merged = [...byId, ...byEmail.filter(m => !seen.has(m.id))];
+
+      // Sort newest first
+      merged.sort((a, b) => {
+        const aTime = a.date?.toMillis?.() || new Date(a.date || 0).getTime();
+        const bTime = b.date?.toMillis?.() || new Date(b.date || 0).getTime();
+        return bTime - aTime;
+      });
+
+      setPlayerMatches(prev => ({ ...prev, [key]: merged.slice(0, 10) }));
+    } catch (err) {
+      console.error('Error loading matches for player:', player.name, err);
+      setPlayerMatches(prev => ({ ...prev, [key]: [] }));
+    } finally {
+      setMatchesLoading(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  /**
+   * Toggle the expanded match details for a player
+   */
+  const toggleExpandPlayer = (player) => {
+    const key = player.id;
+    setExpandedPlayers(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+        loadPlayerMatches(player);
+      }
+      return next;
+    });
   };
 
   /**
@@ -338,67 +400,150 @@ function CoachDashboard({ onNavigateToTab }) {
             </div>
           ) : (
             <div className="grid gap-5">
-              {players.map((player) => (
-                <div key={player.id} className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 hover:shadow-2xl transition-all duration-200 p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-5">
-                      <div className="flex-shrink-0">
-                        <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                          <span className="text-2xl font-bold text-white">
-                            {player.name?.charAt(0)?.toUpperCase() || 'P'}
-                          </span>
+              {players.map((player) => {
+                const isExpanded = expandedPlayers.has(player.id);
+                const matches = playerMatches[player.id] || [];
+                const isLoadingMatches = matchesLoading[player.id];
+                const paramLabels = sportParameterLabels[player.sport] || {};
+
+                return (
+                <div key={player.id} className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 hover:shadow-2xl transition-all duration-200">
+                  <div className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-5">
+                        <div className="flex-shrink-0">
+                          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                            <span className="text-2xl font-bold text-white">
+                              {player.name?.charAt(0)?.toUpperCase() || 'P'}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900">{player.name}</h3>
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200 capitalize">
+                              {player.sport}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-500">{player.email}</p>
                         </div>
                       </div>
-                      <div>
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">{player.name}</h3>
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-200 capitalize">
-                            {player.sport}
-                          </span>
+
+                      <div className="flex items-center space-x-8">
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Current Score</p>
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className={`w-3 h-3 rounded-full shadow-md ${(player.currentScore || 0) >= 80 ? 'bg-green-500' :
+                              (player.currentScore || 0) >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}></div>
+                            <span className={`text-2xl font-bold ${getPerformanceColor(player.currentScore || 0)}`}>
+                              {player.currentScore || 0}%
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1 font-medium">
+                            {getPerformanceStatus(player.currentScore || 0)}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-500">{player.email}</p>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center space-x-8">
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Current Score</p>
-                        <div className="flex items-center justify-center space-x-2">
-                          <div className={`w-3 h-3 rounded-full shadow-md ${(player.currentScore || 0) >= 80 ? 'bg-green-500' :
-                            (player.currentScore || 0) >= 60 ? 'bg-yellow-500' : 'bg-red-500'
-                            }`}></div>
-                          <span className={`text-2xl font-bold ${getPerformanceColor(player.currentScore || 0)}`}>
-                            {player.currentScore || 0}%
-                          </span>
+                        <div className="text-center">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Matches</p>
+                          <p className="text-2xl font-bold text-gray-900">{player.matchCount || 0}</p>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1 font-medium">
-                          {getPerformanceStatus(player.currentScore || 0)}
-                        </p>
-                      </div>
 
-                      <div className="text-center">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Matches</p>
-                        <p className="text-2xl font-bold text-gray-900">{player.matchCount || 0}</p>
-                      </div>
-
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={() => onNavigateToTab && onNavigateToTab('match-entry')}
-                          className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-                        >
-                          Add Match
-                        </button>
-                        <button
-                          onClick={() => onNavigateToTab && onNavigateToTab('players')}
-                          className="px-5 py-2.5 bg-white hover:bg-gray-50 border-2 border-gray-300 hover:border-gray-400 text-gray-700 rounded-lg text-sm font-semibold transition-all duration-200"
-                        >
-                          View Details
-                        </button>
+                        <div className="flex space-x-3">
+                          <button
+                            onClick={() => onNavigateToTab && onNavigateToTab('match-entry')}
+                            className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg text-sm font-semibold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                          >
+                            Add Match
+                          </button>
+                          <button
+                            onClick={() => toggleExpandPlayer(player)}
+                            className={`px-5 py-2.5 border-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
+                              isExpanded
+                                ? 'bg-indigo-50 border-indigo-400 text-indigo-700'
+                                : 'bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 text-gray-700'
+                            }`}
+                          >
+                            Match History
+                            <svg
+                              className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
+
+                  {/* Per-Match Details Panel */}
+                  {isExpanded && (
+                    <div className="border-t border-gray-100 px-6 pb-6">
+                      <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide mt-5 mb-4">
+                        Match History — {player.name}
+                      </h4>
+
+                      {isLoadingMatches ? (
+                        <div className="flex items-center justify-center py-8">
+                          <LoadingSpinner size="sm" text="Loading matches..." />
+                        </div>
+                      ) : matches.length === 0 ? (
+                        <p className="text-sm text-gray-500 py-4 text-center">No matches recorded yet.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-gray-50 rounded-lg">
+                                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide rounded-l-lg">Date</th>
+                                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">Score</th>
+                                {Object.keys(paramLabels).map(key => (
+                                  <th key={key} className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide">
+                                    {paramLabels[key]}
+                                  </th>
+                                ))}
+                                <th className="text-left px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide rounded-r-lg">Top Suggestion</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {matches.map((match) => (
+                                <tr key={match.id} className="hover:bg-gray-50 transition-colors duration-100">
+                                  <td className="px-4 py-3 text-gray-700 whitespace-nowrap">
+                                    {match.date
+                                      ? new Date(match.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                      : '—'}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
+                                      (match.calculatedScore || 0) >= 80
+                                        ? 'bg-green-100 text-green-700'
+                                        : (match.calculatedScore || 0) >= 60
+                                        ? 'bg-yellow-100 text-yellow-700'
+                                        : 'bg-red-100 text-red-700'
+                                    }`}>
+                                      {match.calculatedScore ?? '—'}%
+                                    </span>
+                                  </td>
+                                  {Object.keys(paramLabels).map(key => (
+                                    <td key={key} className="px-4 py-3 text-gray-700">
+                                      {match.parameters?.[key] ?? '—'}
+                                    </td>
+                                  ))}
+                                  <td className="px-4 py-3 text-gray-500 max-w-xs truncate">
+                                    {match.suggestions?.[0] || '—'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
