@@ -10,7 +10,8 @@ function BasketballForm({ onSubmit, loading = false, disabled = false }) {
     rebounds: '',
     assists: '',
     steals: '',
-    minutesPlayed: ''
+    minutesPlayed: '',
+    fieldGoalPercentage: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -52,6 +53,7 @@ function BasketballForm({ onSubmit, loading = false, disabled = false }) {
     const assists = Number(formData.assists);
     const steals = Number(formData.steals);
     const minutes = Number(formData.minutesPlayed);
+    const fgp = Number(formData.fieldGoalPercentage);
 
     // Basic required field validation
     if (formData.pointsScored === '') {
@@ -97,6 +99,12 @@ function BasketballForm({ onSubmit, loading = false, disabled = false }) {
       newErrors.assists = 'Assists per minute seems unusually high';
     }
 
+    if (formData.fieldGoalPercentage === '') {
+      newErrors.fieldGoalPercentage = 'Field goal percentage is required';
+    } else if (fgp < 0 || fgp > 100) {
+      newErrors.fieldGoalPercentage = 'Field goal percentage must be between 0 and 100';
+    }
+
     setErrors(newErrors);
     return {
       isValid: Object.keys(newErrors).length === 0,
@@ -122,7 +130,8 @@ function BasketballForm({ onSubmit, loading = false, disabled = false }) {
       rebounds: Number(formData.rebounds),
       assists: Number(formData.assists),
       steals: Number(formData.steals),
-      minutesPlayed: Number(formData.minutesPlayed)
+      minutesPlayed: Number(formData.minutesPlayed),
+      fieldGoalPercentage: Number(formData.fieldGoalPercentage) / 100
     };
 
     onSubmit(matchParameters);
@@ -137,7 +146,8 @@ function BasketballForm({ onSubmit, loading = false, disabled = false }) {
       rebounds: '',
       assists: '',
       steals: '',
-      minutesPlayed: ''
+      minutesPlayed: '',
+      fieldGoalPercentage: ''
     });
     setErrors({});
   };
@@ -246,7 +256,7 @@ function BasketballForm({ onSubmit, loading = false, disabled = false }) {
         </div>
 
         {/* Minutes Played */}
-        <div className="md:col-span-2">
+        <div>
           <label htmlFor="minutesPlayed" className="block text-sm font-medium text-gray-700">
             Minutes Played *
           </label>
@@ -259,7 +269,7 @@ function BasketballForm({ onSubmit, loading = false, disabled = false }) {
             min="0"
             max="60"
             disabled={disabled}
-            className={`mt-1 block w-full md:w-1/2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+            className={`mt-1 block w-full border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
               errors.minutesPlayed ? 'border-red-300' : 'border-gray-300'
             } ${disabled ? 'bg-gray-100' : ''}`}
             placeholder="e.g., 32"
@@ -270,6 +280,32 @@ function BasketballForm({ onSubmit, loading = false, disabled = false }) {
           <p className="mt-1 text-xs text-gray-500">
             Total minutes played in the game (including overtime)
           </p>
+        </div>
+
+        {/* Field Goal Percentage */}
+        <div>
+          <label htmlFor="fieldGoalPercentage" className="block text-sm font-medium text-gray-700">
+            Field Goal % *
+          </label>
+          <input
+            type="number"
+            id="fieldGoalPercentage"
+            name="fieldGoalPercentage"
+            value={formData.fieldGoalPercentage}
+            onChange={handleInputChange}
+            min="0"
+            max="100"
+            step="0.1"
+            disabled={disabled}
+            className={`mt-1 block w-full border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+              errors.fieldGoalPercentage ? 'border-red-300' : 'border-gray-300'
+            } ${disabled ? 'bg-gray-100' : ''}`}
+            placeholder="e.g., 48.5"
+          />
+          {errors.fieldGoalPercentage && (
+            <p className="mt-1 text-sm text-red-600">{errors.fieldGoalPercentage}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-500">Field goal shooting percentage (0–100)</p>
         </div>
       </div>
 

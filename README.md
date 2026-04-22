@@ -81,6 +81,99 @@ src/
 - Performance monitoring and analytics
 - Cross-platform compatibility
 
+## Performance Score Formulas
+
+All scores are on a **0–100 scale**.
+
+### Cricket
+
+**Batting Score**
+```
+strikeRate    = (runsScored / ballsFaced) × 100
+battingScore  = min(strikeRate, 100)
+```
+
+**Bowling Score**
+```
+wicketsPerOver = wicketsTaken / oversBowled
+wicketScore    = min((wicketsPerOver / 0.5) × 100, 100)
+
+economy        = runsConceded / oversBowled
+economyScore   = ((12 - economy) / (12 - 3)) × 100
+
+bowlingScore   = 0.6 × wicketScore + 0.4 × economyScore
+```
+
+**Fielding Score**
+```
+fieldingScore = min(catches × 20, 100)
+```
+
+**Final Cricket Score**
+```
+finalScore = 0.5 × battingScore + 0.3 × bowlingScore + 0.2 × fieldingScore
+```
+
+---
+
+### Football
+
+All stats are normalized per 90 minutes.
+
+```
+goalsScore   = (goals / minutes) × 90 × 20
+assistsScore = (assists / minutes) × 90 × 15
+passingScore = min((passes / minutes) × 30, 30)
+tacklesScore = min((tackles / minutes) × 90 × 0.22, 20)
+
+attack       = goalsScore
+playmaking   = assistsScore + passingScore
+defense      = tacklesScore
+
+finalScore   = min(0.4 × attack + 0.3 × playmaking + 0.3 × defense, 100)
+```
+
+---
+
+### Basketball
+
+All stats are normalized per 48 minutes.
+
+```
+pointsScore    = min((points / minutes) × 48 × 1, 40)
+reboundsScore  = min((rebounds / minutes) × 48 × 2.5, 25)
+assistsScore   = min((assists / minutes) × 48 × 3.125, 25)
+stealsScore    = min((steals / minutes) × 48 × 5, 10)
+efficiencyScore = fieldGoalPercentage × 100
+
+finalScore = min(pointsScore + reboundsScore + assistsScore + stealsScore + 0.2 × efficiencyScore, 100)
+```
+
+---
+
+### Performance Categories
+
+| Score | Category |
+|-------|----------|
+| 90–100 | Excellent |
+| 80–89 | Very Good |
+| 70–79 | Good |
+| 60–69 | Average |
+| Below 60 | Below Average |
+
+### Trend Detection
+
+```
+change           = currentScore - previousScore
+percentageChange = (previousScore == 0) ? 100 : (change / previousScore) × 100
+
+if percentageChange > 5  → Improving
+if percentageChange < -5 → Declining
+else                     → Stable
+```
+
+---
+
 ## Firebase Setup Requirements
 
 This application requires Firebase Authentication and Firestore Database to be enabled in your Firebase project. Make sure to:

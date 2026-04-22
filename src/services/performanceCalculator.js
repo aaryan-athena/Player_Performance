@@ -9,46 +9,44 @@
  * @param {number} params.runsScored - Runs scored by the player
  * @param {number} params.ballsFaced - Balls faced by the player
  * @param {number} params.wicketsTaken - Wickets taken by the player
+ * @param {number} params.runsConceded - Runs conceded while bowling
  * @param {number} params.catches - Catches taken by the player
  * @param {number} params.oversBowled - Overs bowled by the player
  * @returns {number} Performance score (0-100)
  */
 export const calculateCricketScore = (params) => {
-  const { runsScored, ballsFaced, wicketsTaken, catches, oversBowled } = params;
-  
+  const { runsScored, ballsFaced, wicketsTaken, runsConceded, catches, oversBowled } = params;
+
   // Validate inputs
   if (!params || typeof params !== 'object') {
     throw new Error('Invalid cricket parameters provided');
   }
-  
-  // Batting score calculation (strike rate based)
+
+  // Batting score: strike rate normalized to 0-100
   let battingScore = 0;
   if (ballsFaced > 0) {
     const strikeRate = (runsScored / ballsFaced) * 100;
-    // Normalize strike rate to 0-100 scale (100+ strike rate = full batting points)
     battingScore = Math.min(100, strikeRate);
-  } else if (runsScored > 0) {
-    // If runs scored but no balls faced recorded, give partial credit
-    battingScore = Math.min(100, runsScored * 10);
   }
-  
-  // Bowling score calculation (wickets per over)
+
+  // Bowling score: wicket rate + economy rate combined
   let bowlingScore = 0;
   if (oversBowled > 0) {
     const wicketsPerOver = wicketsTaken / oversBowled;
-    // Good bowling: 1 wicket per 3 overs = 33 points, scale accordingly
-    bowlingScore = Math.min(100, wicketsPerOver * 100);
-  } else if (wicketsTaken > 0) {
-    // If wickets taken but no overs recorded, give partial credit
-    bowlingScore = Math.min(100, wicketsTaken * 25);
+    const wicketScore = Math.min(100, (wicketsPerOver / 0.5) * 100);
+
+    const economy = runsConceded / oversBowled;
+    const economyScore = ((12 - economy) / (12 - 3)) * 100;
+
+    bowlingScore = (0.6 * wicketScore) + (0.4 * economyScore);
   }
-  
-  // Fielding score calculation
-  const fieldingScore = Math.min(100, catches * 20); // Each catch worth 20 points
-  
+
+  // Fielding score
+  const fieldingScore = Math.min(100, catches * 20);
+
   // Weighted combination: Batting 50%, Bowling 30%, Fielding 20%
   const totalScore = (battingScore * 0.5) + (bowlingScore * 0.3) + (fieldingScore * 0.2);
-  
+
   return Math.round(Math.min(100, Math.max(0, totalScore)));
 };
 
@@ -72,60 +70,54 @@ export const calculateFootballScore = (params) => {
   
   // Prevent division by zero
   const safeMinutesPlayed = Math.max(minutesPlayed, 1);
-  
-  // Goal scoring (20 points per goal, normalized by minutes)
-  const goalScore = (goalsScored / safeMinutesPlayed) * 90 * 20; // Per 90 minutes
-  
-  // Assist scoring (15 points per assist, normalized by minutes)
-  const assistScore = (assists / safeMinutesPlayed) * 90 * 15; // Per 90 minutes
-  
-  // Passing accuracy (based on passes per minute, good player ~1 pass per minute)
-  const passAccuracy = Math.min(30, (passesCompleted / safeMinutesPlayed) * 30);
-  
-  // Defensive contribution (tackles per minute, good defender ~0.5 tackles per minute)
-  const defenseScore = Math.min(20, (tacklesMade / safeMinutesPlayed) * 90 * 0.22); // Per 90 minutes
-  
-  const totalScore = goalScore + assistScore + passAccuracy + defenseScore;
-  
+
+  // All stats normalized per 90 minutes
+  const goalsScore = (goalsScored / safeMinutesPlayed) * 90 * 20;
+  const assistsScore = (assists / safeMinutesPlayed) * 90 * 15;
+  const passingScore = Math.min(30, (passesCompleted / safeMinutesPlayed) * 30);
+  const tacklesScore = Math.min(20, (tacklesMade / safeMinutesPlayed) * 90 * 0.22);
+
+  const attack = goalsScore;
+  const playmaking = assistsScore + passingScore;
+  const defense = tacklesScore;
+
+  const totalScore = (0.4 * attack) + (0.3 * playmaking) + (0.3 * defense);
+
   return Math.round(Math.min(100, Math.max(0, totalScore)));
 };
 
 /**
- * Calculate basketball performance score based on points, rebounds, assists, and steals
+ * Calculate basketball performance score based on points, rebounds, assists, steals, and field goal %
  * @param {Object} params - Basketball parameters
  * @param {number} params.pointsScored - Points scored by the player
  * @param {number} params.rebounds - Rebounds by the player
  * @param {number} params.assists - Assists by the player
  * @param {number} params.steals - Steals by the player
  * @param {number} params.minutesPlayed - Minutes played by the player
+ * @param {number} params.fieldGoalPercentage - Field goal percentage (0-1)
  * @returns {number} Performance score (0-100)
  */
 export const calculateBasketballScore = (params) => {
-  const { pointsScored, rebounds, assists, steals, minutesPlayed } = params;
-  
+  const { pointsScored, rebounds, assists, steals, minutesPlayed, fieldGoalPercentage } = params;
+
   // Validate inputs
   if (!params || typeof params !== 'object') {
     throw new Error('Invalid basketball parameters provided');
   }
-  
+
   // Prevent division by zero
   const safeMinutesPlayed = Math.max(minutesPlayed, 1);
-  
-  // Points per minute (normalized to 48 minutes, elite scorer ~1 point per minute)
-  const pointsPerMinute = (pointsScored / safeMinutesPlayed) * 48;
-  const pointScore = Math.min(40, pointsPerMinute * 0.83); // 40 points max for scoring
-  
-  // Rebounds (good rebounder gets ~10 per 48 minutes)
+
+  // All stats normalized per 48 minutes
+  const pointScore = Math.min(40, (pointsScored / safeMinutesPlayed) * 48 * 1);
   const reboundScore = Math.min(25, (rebounds / safeMinutesPlayed) * 48 * 2.5);
-  
-  // Assists (good playmaker gets ~8 per 48 minutes)
   const assistScore = Math.min(25, (assists / safeMinutesPlayed) * 48 * 3.125);
-  
-  // Steals (good defender gets ~2 per 48 minutes)
   const stealScore = Math.min(10, (steals / safeMinutesPlayed) * 48 * 5);
-  
-  const totalScore = pointScore + reboundScore + assistScore + stealScore;
-  
+
+  const efficiencyScore = (fieldGoalPercentage || 0) * 100;
+
+  const totalScore = pointScore + reboundScore + assistScore + stealScore + (0.2 * efficiencyScore);
+
   return Math.round(Math.min(100, Math.max(0, totalScore)));
 };
 
@@ -178,19 +170,17 @@ export const getPerformanceCategory = (score) => {
  * @returns {Object} Change information
  */
 export const calculatePerformanceChange = (currentScore, previousScore) => {
-  if (!previousScore || previousScore === 0) {
-    return { change: 0, percentage: 0, trend: 'stable' };
-  }
-  
   const change = currentScore - previousScore;
-  const percentage = Math.round((change / previousScore) * 100);
-  
+  const percentage = previousScore === 0
+    ? 100
+    : Math.round((change / previousScore) * 100);
+
   let trend = 'stable';
-  if (change > 2) {
+  if (percentage > 5) {
     trend = 'improving';
-  } else if (change < -2) {
+  } else if (percentage < -5) {
     trend = 'declining';
   }
-  
+
   return { change, percentage, trend };
 };

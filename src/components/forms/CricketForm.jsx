@@ -9,6 +9,7 @@ function CricketForm({ onSubmit, loading = false, disabled = false }) {
     runsScored: '',
     ballsFaced: '',
     wicketsTaken: '',
+    runsConceded: '',
     catches: '',
     oversBowled: ''
   });
@@ -50,6 +51,7 @@ function CricketForm({ onSubmit, loading = false, disabled = false }) {
     const runs = Number(formData.runsScored);
     const balls = Number(formData.ballsFaced);
     const wickets = Number(formData.wicketsTaken);
+    const runsConceded = Number(formData.runsConceded);
     const catches = Number(formData.catches);
     const overs = Number(formData.oversBowled);
 
@@ -70,6 +72,12 @@ function CricketForm({ onSubmit, loading = false, disabled = false }) {
       newErrors.wicketsTaken = 'Wickets taken is required';
     } else if (wickets < 0 || wickets > 10) {
       newErrors.wicketsTaken = 'Wickets must be between 0 and 10';
+    }
+
+    if (formData.runsConceded === '') {
+      newErrors.runsConceded = 'Runs conceded is required';
+    } else if (runsConceded < 0 || runsConceded > 500) {
+      newErrors.runsConceded = 'Runs conceded must be between 0 and 500';
     }
 
     if (formData.catches === '') {
@@ -121,6 +129,7 @@ function CricketForm({ onSubmit, loading = false, disabled = false }) {
       runsScored: Number(formData.runsScored),
       ballsFaced: Number(formData.ballsFaced),
       wicketsTaken: Number(formData.wicketsTaken),
+      runsConceded: Number(formData.runsConceded),
       catches: Number(formData.catches),
       oversBowled: Number(formData.oversBowled)
     };
@@ -136,6 +145,7 @@ function CricketForm({ onSubmit, loading = false, disabled = false }) {
       runsScored: '',
       ballsFaced: '',
       wicketsTaken: '',
+      runsConceded: '',
       catches: '',
       oversBowled: ''
     });
@@ -220,6 +230,31 @@ function CricketForm({ onSubmit, loading = false, disabled = false }) {
           <p className="mt-1 text-xs text-gray-500">Number of wickets taken while bowling</p>
         </div>
 
+        {/* Runs Conceded */}
+        <div>
+          <label htmlFor="runsConceded" className="block text-sm font-medium text-gray-700">
+            Runs Conceded *
+          </label>
+          <input
+            type="number"
+            id="runsConceded"
+            name="runsConceded"
+            value={formData.runsConceded}
+            onChange={handleInputChange}
+            min="0"
+            max="500"
+            disabled={disabled}
+            className={`mt-1 block w-full border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+              errors.runsConceded ? 'border-red-300' : 'border-gray-300'
+            } ${disabled ? 'bg-gray-100' : ''}`}
+            placeholder="e.g., 28"
+          />
+          {errors.runsConceded && (
+            <p className="mt-1 text-sm text-red-600">{errors.runsConceded}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-500">Runs conceded while bowling</p>
+        </div>
+
         {/* Catches */}
         <div>
           <label htmlFor="catches" className="block text-sm font-medium text-gray-700">
@@ -288,11 +323,11 @@ function CricketForm({ onSubmit, loading = false, disabled = false }) {
                 }
               </span>
             </div>
-            {formData.oversBowled > 0 && (
+            {formData.oversBowled > 0 && formData.runsConceded !== '' && (
               <div>
                 <span className="text-blue-700">Economy Rate:</span>
                 <span className="ml-1 font-medium">
-                  {(Number(formData.runsScored) / Number(formData.oversBowled)).toFixed(1)}
+                  {(Number(formData.runsConceded) / Number(formData.oversBowled)).toFixed(1)}
                 </span>
               </div>
             )}

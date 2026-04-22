@@ -8,6 +8,7 @@ export const cricketParameterSchema = {
   runsScored: { type: 'number', min: 0, max: 500, required: true },
   ballsFaced: { type: 'number', min: 0, max: 600, required: true },
   wicketsTaken: { type: 'number', min: 0, max: 10, required: true },
+  runsConceded: { type: 'number', min: 0, max: 500, required: true },
   catches: { type: 'number', min: 0, max: 20, required: true },
   oversBowled: { type: 'number', min: 0, max: 50, required: true }
 };
@@ -27,7 +28,8 @@ export const basketballParameterSchema = {
   rebounds: { type: 'number', min: 0, max: 50, required: true },
   assists: { type: 'number', min: 0, max: 30, required: true },
   steals: { type: 'number', min: 0, max: 20, required: true },
-  minutesPlayed: { type: 'number', min: 0, max: 48, required: true }
+  minutesPlayed: { type: 'number', min: 0, max: 48, required: true },
+  fieldGoalPercentage: { type: 'number', min: 0, max: 1, required: true }
 };
 
 // Sport parameter schemas mapping
@@ -42,6 +44,7 @@ export const defaultCricketParameters = {
   runsScored: 0,
   ballsFaced: 0,
   wicketsTaken: 0,
+  runsConceded: 0,
   catches: 0,
   oversBowled: 0
 };
@@ -59,7 +62,8 @@ export const defaultBasketballParameters = {
   rebounds: 0,
   assists: 0,
   steals: 0,
-  minutesPlayed: 0
+  minutesPlayed: 0,
+  fieldGoalPercentage: 0
 };
 
 export const defaultSportParameters = {
@@ -73,6 +77,7 @@ export const cricketParameterLabels = {
   runsScored: 'Runs Scored',
   ballsFaced: 'Balls Faced',
   wicketsTaken: 'Wickets Taken',
+  runsConceded: 'Runs Conceded',
   catches: 'Catches',
   oversBowled: 'Overs Bowled'
 };
@@ -90,7 +95,8 @@ export const basketballParameterLabels = {
   rebounds: 'Rebounds',
   assists: 'Assists',
   steals: 'Steals',
-  minutesPlayed: 'Minutes Played'
+  minutesPlayed: 'Minutes Played',
+  fieldGoalPercentage: 'Field Goal %'
 };
 
 export const sportParameterLabels = {
