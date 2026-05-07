@@ -7,7 +7,8 @@ import {
   MatchHistory, 
   SuggestionPanel 
 } from '../components/player/index.js';
-import { LoadingSpinner, Navigation } from '../components/shared/index.js';
+import { LoadingSpinner, Navigation, AIChatbot } from '../components/shared/index.js';
+import { buildPlayerSystemPrompt } from '../services/geminiService.js';
 
 /**
  * PlayerPage - Complete player interface with dashboard, charts, history, and suggestions
@@ -26,6 +27,11 @@ const PlayerPage = () => {
   } = usePerformance(userData?.uid);
 
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Only build once real data is available so the chatbot session has accurate stats
+  const chatSystemPrompt = (!performanceLoading && performanceSummary)
+    ? buildPlayerSystemPrompt(userData, performanceSummary, recentMatches)
+    : null;
 
   if (authLoading) {
     return (
@@ -208,6 +214,7 @@ const PlayerPage = () => {
           />
         )}
       </div>
+      <AIChatbot systemPrompt={chatSystemPrompt} role="player" />
     </div>
   );
 };

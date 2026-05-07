@@ -9,3 +9,4 @@ export { default as NotFound } from './NotFound.jsx';
 export { default as OfflineIndicator } from './OfflineIndicator';
 export { default as OfflineStatus } from './OfflineStatus';
 export * from './LoadingStates';
+export { default as AIChatbot } from './AIChatbot.jsx';

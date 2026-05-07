@@ -8,7 +8,7 @@ import { Card, Button, Badge, LoadingSpinner, Alert } from '../ui/index.js';
  * Main coach dashboard component
  * Displays player list, team performance overview, and navigation options
  */
-function CoachDashboard({ onNavigateToTab }) {
+function CoachDashboard({ onNavigateToTab, onDataLoaded }) {
   const { userData } = useAuth();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,12 +58,9 @@ function CoachDashboard({ onNavigateToTab }) {
    */
   const calculateTeamStats = (playersData) => {
     if (playersData.length === 0) {
-      setTeamStats({
-        totalPlayers: 0,
-        averageScore: 0,
-        totalMatches: 0,
-        topPerformer: null
-      });
+      const empty = { totalPlayers: 0, averageScore: 0, totalMatches: 0, topPerformer: null };
+      setTeamStats(empty);
+      onDataLoaded?.({ players: playersData, teamStats: empty });
       return;
     }
 
@@ -80,12 +77,14 @@ function CoachDashboard({ onNavigateToTab }) {
         return (!top || playerAvg > (top.averageScore || 0)) ? player : top;
       }, null);
 
-    setTeamStats({
+    const stats = {
       totalPlayers,
       averageScore: Math.round(averageScore * 100) / 100,
       totalMatches,
       topPerformer
-    });
+    };
+    setTeamStats(stats);
+    onDataLoaded?.({ players: playersData, teamStats: stats });
   };
 
   /**

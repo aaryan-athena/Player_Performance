@@ -17,9 +17,14 @@ npm install
 5. Fill in your Firebase configuration values
 
 ### 3. Environment Variables
-Copy `.env.example` to `.env` and update with your Firebase configuration:
+Copy `.env.example` to `.env` and update with your Firebase and Gemini configuration:
 ```bash
 cp .env.example .env
+```
+
+Set your Gemini API key (get one from [Google AI Studio](https://aistudio.google.com/apikey)):
+```
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ### 4. Run Development Server

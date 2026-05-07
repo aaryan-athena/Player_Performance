@@ -5,7 +5,8 @@ import {
   PlayerManagement,
   MatchEntryForm
 } from '../components/coach/index.js';
-import { LoadingSpinner, Navigation } from '../components/shared/index.js';
+import { LoadingSpinner, Navigation, AIChatbot } from '../components/shared/index.js';
+import { buildCoachSystemPrompt } from '../services/geminiService.js';
 
 /**
  * CoachPage - Complete coach interface with dashboard, player management, and match entry
@@ -15,6 +16,9 @@ const CoachPage = () => {
   const { userData, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [teamData, setTeamData] = useState({ players: [], teamStats: {} });
+
+  const chatSystemPrompt = buildCoachSystemPrompt(userData, teamData.players, teamData.teamStats);
 
   if (authLoading) {
     return (
@@ -102,7 +106,10 @@ const CoachPage = () => {
       <div className="mobile-container py-4 sm:py-8">
         {/* Tab Content */}
         {activeTab === 'dashboard' && (
-          <CoachDashboard onNavigateToTab={setActiveTab} />
+          <CoachDashboard
+            onNavigateToTab={setActiveTab}
+            onDataLoaded={setTeamData}
+          />
         )}
 
         {activeTab === 'players' && (
@@ -157,6 +164,7 @@ const CoachPage = () => {
           </div>
         )}
       </div>
+      <AIChatbot systemPrompt={chatSystemPrompt} role="coach" />
     </div>
   );
 };
